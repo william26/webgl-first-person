@@ -30,7 +30,7 @@ module.exports = () ->
 
 	onDocumentMouseUp = (e) ->
 		buttonsPressed[e.which] = false
-	
+
 	onDocumentKeyDown = (e) ->
 		keyPressed[e.keyCode] = true
 
@@ -48,9 +48,34 @@ module.exports = () ->
 		rotWorldMatrix.makeRotationAxis(axis.normalize(), radians)
 		object.matrix = rotWorldMatrix
 		object.rotation.setFromRotationMatrix(object.matrix, object.order)
+
+
+	drawLine = (from, to) ->
+		geometry = new THREE.Geometry()
+		material = new THREE.LineBasicMaterial {
+			color: 0x0000ff,
+			linewidth: 5
+		}
+		geometry.vertices.push(from)
+		geometry.vertices.push(to)
+		line = new THREE.Line geometry, material
+		trail.push line
+		game.scene.add line
+		if trail.length > 500
+			game.scene.remove trail[0]
+			trail.shift()
+
+
+
 	anglex = 0
 	angley = 0
 	companion_cube = undefined
+	walk_style_angle = 0
+	trail = []
+
+
+
+
 	class Player
 		constructor: () ->
 			@object = new THREE.Object3D()
@@ -64,7 +89,7 @@ module.exports = () ->
 			canvas.requestPointerLock = canvas.requestPointerLock ||
 				canvas.mozRequestPointerLock ||
 				canvas.webkitRequestPointerLock
-			
+
 			$(canvas).click () ->
 				canvas.requestPointerLock()
 
@@ -76,7 +101,7 @@ module.exports = () ->
 			document.addEventListener('mouseup', onDocumentMouseUp, false)
 			document.addEventListener('keydown', onDocumentKeyDown, false)
 			document.addEventListener('keyup', onDocumentKeyUp, false)
-		
+
 
 		init: (g) ->
 			game = g
@@ -86,19 +111,6 @@ module.exports = () ->
 			@object.position.y = 0
 			@object. add @feet
 			@top_position = 0
-
-
-			cubeGeo = new THREE.BoxGeometry(50, 100, 50)
-			cubeMaterial = new THREE.MeshLambertMaterial({
-				color: 0x000000,
-				ambient: 0x000000,
-				shading: THREE.FlatShading
-			})
-			companion_cube = new THREE.Mesh(cubeGeo, cubeMaterial)
-			companion_cube.position.z = - 10
-			companion_cube.position.y = -150
-			# @object.add companion_cube
-
 			@initControls()
 
 
@@ -120,6 +132,17 @@ module.exports = () ->
 			@speed.z = speed * (movement.z * Math.cos(angley) - movement.x * Math.sin(angley))
 			@speed.x = speed * (movement.x * Math.cos(angley) + movement.z * Math.sin(angley))
 
+			if (@speed.length() > 0)
+				walk_style_angle += 0.25
+				walk_style_angle += 0.1 if keyPressed[16]
+				walk_style_angle = walk_style_angle % (2 * Math.PI)
+			else
+				walk_style_angle = 0
+			walk_style_height = 5
+
+			game.camera.position.y = Math.sin(walk_style_angle) * walk_style_height + 1 + 175
+
+
 			anglex -= mouse_movement.y * game.constants.MOUSE_SENSITIVITY
 			if anglex > Math.PI / 2
 				anglex = Math.PI / 2
@@ -139,34 +162,76 @@ module.exports = () ->
 				@state = 'jumping'
 				@speed.y = 15
 
-
-		testCollisions: (old_position, delta) ->
+		collisionForAngle: (origin, angle, delta) ->
 			vector = new THREE.Vector3()
-			vector.copy(@object.position)
-			vector.y = @object.position.y
-			direction = new THREE.Vector3(-Math.sin(angley), 0, -Math.cos(angley))
-			# console.log direction
-			raycaster = new THREE.Raycaster(vector, direction, 0, 50)
+			vector.copy(origin)
+			direction = new THREE.Vector3(-Math.sin(angle), 0, -Math.cos(angle))
+			raycaster = new THREE.Raycaster(vector, direction, 0, 10)
 			intersects = raycaster.intersectObjects(game.world)
-
+			_delta = undefined
 			for intersect in intersects
 				_delta = new THREE.Vector3().copy(delta)
 				_delta.projectOnVector(intersect.face.normal)
-				@object.position.sub(_delta)
+				if _delta.angleTo(intersect.face.normal) < Math.PI / 2
+					_delta = undefined
+			return _delta
+
+		testCollisions: (old_position, delta) ->
+			k = 0
+			d = undefined
+			while k <= 2 * Math.PI
+				de = @collisionForAngle(@object.position, k, delta)
+				if d and de and not d.equals de
+					d.add de
+				else if de
+					d = de
+				k += Math.PI / 2
+			@object.position.sub(d) if d
+
+			k = 0
+			d = undefined
+			vector = new THREE.Vector3().copy(@object.position).add(new THREE.Vector3(0, 175 / 2, 0))
+			while k <= 2 * Math.PI
+				de = @collisionForAngle(vector, k, delta)
+				if d and de and not d.equals de
+					d.add de
+				else if de
+					d = de
+				k += Math.PI / 2
+			@object.position.sub(d) if d
+
+			k = 0
+			d = undefined
+			vector = new THREE.Vector3().copy(@object.position).add(new THREE.Vector3(0, 175, 0))
+			while k <= 2 * Math.PI
+				de = @collisionForAngle(vector, k, delta)
+				if d and de and not d.equals de
+					d.add de
+				else if de
+					d = de
+				k += Math.PI / 2
+			@object.position.sub(d) if d
 
 
-			# vector = new THREE.vector3()
-			# vector.copy(@object.position)
-			# vector.y += game.camera.positon
-			# vert_ray = new THREE.Raycaster(vector, new THREE.Vector3(0,-1,0))
-			# intersects = raycaster.intersectObjects(game.world)
-			
-			# for intersect in intersects
-			# 	if intersect.point.y > @top_position
-			# 		console.log @top_position
-			# 		@top_position = intersect.point.y
-			# if (@object.position.y > @top_position)
-			# 	@state = 'jumping'
+
+			vector = new THREE.Vector3()
+			vector.copy(@object.position)
+			vector.y += 175
+			v2 = new THREE.Vector3(0,-1,0)
+			vert_ray = new THREE.Raycaster(vector, v2)
+
+			if not old_position.equals(@object.position)
+				gv = new THREE.Vector3().copy(vector).sub(new THREE.Vector3(0,175,0))
+				drawLine gv, new THREE.Vector3().subVectors(gv, v2), true
+
+			intersects = vert_ray.intersectObjects(game.world)
+			if intersects.length > 0
+				for intersect in intersects
+					if intersect.point.y > @top_position
+						@top_position = intersect.point.y + 5
+				@object.position.y = @top_position
+			if (@object.position.y > @top_position)
+				@state = 'jumping'
 
 
 		physics: (old_position) ->
@@ -184,7 +249,6 @@ module.exports = () ->
 				@state = 'walking'
 				@speed.y = 0
 				@object.position.y = @top_position
-
 			if @object.state == 'walking'
 				@object.position.y = @top_position
 

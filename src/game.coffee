@@ -39,11 +39,11 @@ module.exports = (id) ->
 		cubeMaterial = new THREE.MeshLambertMaterial({
 			color: 0xfeb74c,
 			ambient: 0x00ff80,
-			shading: THREE.FlatShading
+			shading: THREE.SmoothShading
 		})
 
 		cube_mesh = new THREE.Mesh(cubeGeo, cubeMaterial)
-		cube_mesh.position.set 0, 25, 0
+		cube_mesh.position.set 0, 50, 0
 		game.world.push cube_mesh
 		game.scene.add cube_mesh
 
@@ -66,7 +66,7 @@ module.exports = (id) ->
 		@initPlayer()
 		@initCube()
 		@initLighting()
-		
+
 
 	game.controls = () ->
 		for entity in game.entities
@@ -98,4 +98,3 @@ module.exports = (id) ->
 	Player = require('./Entities/Player')(game)
 
 	game
-
