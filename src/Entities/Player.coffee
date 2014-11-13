@@ -53,7 +53,7 @@ module.exports = () ->
 	drawLine = (from, to) ->
 		geometry = new THREE.Geometry()
 		material = new THREE.LineBasicMaterial {
-			color: 0x0000ff,
+			color: 0x000000,
 			linewidth: 5
 		}
 		geometry.vertices.push(from)
@@ -69,7 +69,6 @@ module.exports = () ->
 
 	anglex = 0
 	angley = 0
-	companion_cube = undefined
 	walk_style_angle = 0
 	trail = []
 
@@ -111,6 +110,7 @@ module.exports = () ->
 			@object.position.y = 0
 			@object. add @feet
 			@top_position = 0
+
 			@initControls()
 
 
@@ -152,7 +152,6 @@ module.exports = () ->
 			angley -= mouse_movement.x * game.constants.MOUSE_SENSITIVITY
 			rotateAroundWorldAxis(game.camera, new THREE.Vector3(0, 1, 0), angley)
 			rotateAroundObjectAxis(game.camera, new THREE.Vector3(1, 0, 0), anglex)
-			rotateAroundWorldAxis(companion_cube, new THREE.Vector3(0, 1, 0), angley)
 
 			mouse_movement = {
 				x: 0, y: 0
