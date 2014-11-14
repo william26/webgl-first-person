@@ -47,6 +47,16 @@ module.exports = (id) ->
 		game.world.push cube_mesh
 		game.scene.add cube_mesh
 
+		geometry = new THREE.SphereGeometry(50, 50, 50)
+		material = new THREE.MeshLambertMaterial({
+			color: 0xffff00
+		})
+		sphere = new THREE.Mesh(geometry, material)
+		sphere.position.y = 50
+		sphere.position.x = 200
+		game.scene.add(sphere)
+		game.world.push sphere
+
 	game.initRenderer = () ->
 		game.renderer = new THREE.WebGLRenderer({
 			antialias: true

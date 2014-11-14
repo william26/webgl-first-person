@@ -176,40 +176,20 @@ module.exports = () ->
 			return _delta
 
 		testCollisions: (old_position, delta) ->
-			k = 0
-			d = undefined
-			while k <= 2 * Math.PI
-				de = @collisionForAngle(@object.position, k, delta)
-				if d and de and not d.equals de
-					d.add de
-				else if de
-					d = de
-				k += Math.PI / 2
-			@object.position.sub(d) if d
-
-			k = 0
-			d = undefined
-			vector = new THREE.Vector3().copy(@object.position).add(new THREE.Vector3(0, 175 / 2, 0))
-			while k <= 2 * Math.PI
-				de = @collisionForAngle(vector, k, delta)
-				if d and de and not d.equals de
-					d.add de
-				else if de
-					d = de
-				k += Math.PI / 2
-			@object.position.sub(d) if d
-
-			k = 0
-			d = undefined
-			vector = new THREE.Vector3().copy(@object.position).add(new THREE.Vector3(0, 175, 0))
-			while k <= 2 * Math.PI
-				de = @collisionForAngle(vector, k, delta)
-				if d and de and not d.equals de
-					d.add de
-				else if de
-					d = de
-				k += Math.PI / 2
-			@object.position.sub(d) if d
+			height = 0
+			while height <= 175
+				k = 0
+				d = undefined
+				vector = new THREE.Vector3().copy(@object.position).add(new THREE.Vector3(0, height, 0))
+				while k <= 2 * Math.PI
+					de = @collisionForAngle(vector, k, delta)
+					if d and de and not d.equals de
+						d.add de
+					else if de
+						d = de
+					k += Math.PI / 2
+				@object.position.sub(d) if d
+				height += 20
 
 
 
@@ -227,8 +207,9 @@ module.exports = () ->
 			if intersects.length > 0
 				for intersect in intersects
 					if intersect.point.y > @top_position
-						@top_position = intersect.point.y + 5
-				@object.position.y = @top_position
+						@top_position = intersect.point.y
+				if @state == 'walking'
+					@object.position.y = @top_position
 			if (@object.position.y > @top_position)
 				@state = 'jumping'
 
@@ -247,8 +228,6 @@ module.exports = () ->
 			else if @object.position.y <= @top_position
 				@state = 'walking'
 				@speed.y = 0
-				@object.position.y = @top_position
-			if @object.state == 'walking'
 				@object.position.y = @top_position
 
 
